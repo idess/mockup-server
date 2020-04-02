@@ -15,20 +15,28 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function createWindow(): void {
-    let appWidth = 570;
+    let frame = undefined;
     if (process.platform === 'darwin') {
-        appWidth = 540;
+        frame = isDevelopment ? true : false;
+    } else {
+        frame = true;
     }
+
     // Create the browser window.
     win = new BrowserWindow({
         resizable: true,
-        width: appWidth,
-        height: 600,
+        width: 870,
+        titleBarStyle: 'hidden',
+        maximizable: false,
+        transparent: isDevelopment ? false : true,
+        frame: false,
+        height: 690,
         webPreferences: {
             nodeIntegration: true,
         },
         icon: path.join(__dirname, 'icon.png'),
     });
+
     win.setMenuBarVisibility(false);
 
     if (process.env.WEBPACK_DEV_SERVER_URL) {

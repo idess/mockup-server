@@ -1,11 +1,14 @@
 import express from 'express';
 import { ApiInfo } from '@/const/mockType';
+import { GET,PUT,DELETE,POST, COLOR_PALLET } from '@/const/mockConst';
 import bodyParser from 'body-parser';
 import JsonLogic from './jsonLogic';
+import  store  from '../../store';
 import cors from 'cors';
+import { initLogObject, saveLogInfo, addLogHistroy } from './logLogic';
 const app = express();
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 export default class MockupServer {
@@ -21,10 +24,10 @@ export default class MockupServer {
 
     private self: any;
 
-    public constructor(vueComponent: any, serverPort: string) {
+    public constructor(serverPort: string) {
         this.port = serverPort;
-        this.self = vueComponent;
-        this.restfullList = this.self.$store.state.apiInfoList;
+        this.restfullList = store.state.apiInfoList;
+        initLogObject(this.self);
     }
 
     public start(): boolean {
@@ -35,7 +38,6 @@ export default class MockupServer {
         this.server = app.listen(this.port, () => {
             console.log(`server started at http://localhost:${this.port}`);
         });
-
         this.generateAPI();
         return true;
     }
@@ -49,7 +51,7 @@ export default class MockupServer {
         });
 
         delete this.server;
-        this.self.$store.commit('apiInfoList', []);
+        store.commit('apiInfoList', []);
         return false;
     }
 
@@ -61,7 +63,7 @@ export default class MockupServer {
     }
 
     private generateAPI(): void {
-        this.self.$store.state.apiInfoList.forEach(
+        store.state.apiInfoList.forEach(
             (restful: ApiInfo, cnt: number) => {
                 try {
                     this.getApi(restful, cnt);
@@ -83,20 +85,23 @@ export default class MockupServer {
                 restful.status === 'success'
                     ? this.jsonLogic.postData(req, restful)
                     : restful.error;
-            this.self.$store.state.apiInfoList[cnt].index = result;
-            this.setHeader(res, restful);
+            
+            store.state.apiInfoList[cnt]!.index = result;
+            saveLogInfo(restful.api,req.body);
+            addLogHistroy(restful.api,POST,req.body);
             res.send(result);
         });
-
+        
         app.post(
             restful.api + '/:' + this.dynamicRoute(restful.dynamicRoute),
             (req: any, res: any) => {
                 const result = this.jsonLogic.getJson(restful);
                 const data = req.params.hasOwnProperty(this.dynamicRoute(restful.dynamicRoute))
-                    ? this.jsonLogic.selectData(result, req.params)
-                    : result;
-
-                this.setHeader(res, restful);
+                ? this.jsonLogic.selectData(result, req.params)
+                : result;
+                // res = this.setHeader(res, restful);
+                saveLogInfo(restful.api, req.body);
+                addLogHistroy(restful.api,POST,req.body);
                 res.send(data);
             },
         );
@@ -111,23 +116,28 @@ export default class MockupServer {
                     ? this.jsonLogic.deleteData(result, req.params)
                     : result;
                 this.restfullList[cnt].index = data;
-                this.setHeader(res, restful);
-                res.send(data);
+                addLogHistroy(restful.api,DELETE,req.body);
+                // res = this.setHeader(res, restful);
+                res.sendStatus(200)
             },
         );
     }
 
     private putApi(restful: ApiInfo, cnt: number): void {
+        
         app.put(
             restful.api + '/:' + this.dynamicRoute(restful.dynamicRoute),
             (req: any, res: any) => {
+
                 const result = this.jsonLogic.getJson(restful);
                 const data = req.params.hasOwnProperty(this.dynamicRoute(restful.dynamicRoute))
                     ? this.jsonLogic.putData(result, req)
                     : result;
                 this.restfullList[cnt].index = data;
-                this.setHeader(res, restful);
-                res.send(data);
+                // res = this.setHeader(res, restful);
+                addLogHistroy(restful.api,PUT,req.body);
+                saveLogInfo(restful.api, req.body);
+                res.sendStatus(200);
             },
         );
     }
@@ -135,11 +145,12 @@ export default class MockupServer {
     private getApi(restful: ApiInfo, cnt: number): void {
         app.get(restful.api, (req: any, res: any) => {
             const result = this.jsonLogic.getJson(
-                this.self.$store.state.apiInfoList[cnt],
+                store.state.apiInfoList[cnt],
             );
-
-            this.setHeader(res, restful);
+            // res = this.setHeader(res, restful);
+            saveLogInfo(restful.api, result);
             res.send(result);
+            addLogHistroy(restful.api,GET,req.body);
         });
 
         app.get(
@@ -149,24 +160,24 @@ export default class MockupServer {
                 const data = req.params.hasOwnProperty(this.dynamicRoute(restful.dynamicRoute))
                     ? this.jsonLogic.selectData(result, req.params)
                     : result;
-
-                this.setHeader(res, restful);
+                saveLogInfo(restful.api, data);
+                addLogHistroy(restful.api,GET,req.body);
                 res.send(data);
             },
         );
     }
 
-    private setHeader(res: any, restful: any) {
-        res.set(restful.header)
-        if (restful?.cookies) {
-            restful?.cookies.forEach((cookie: any, idx: number) => {
-                const key = Object.keys(cookie)[0];
-                const name = cookie[key];
-                res.cookie(key, name, cookie.options);
-            });
-        }
-        return;
-    }
+    // private setHeader(res: any, restful: any) {
+    //     res.set(restful.header)
+    //     if (restful?.cookies) {
+    //         restful?.cookies.forEach((cookie: any, idx: number) => {
+    //             const key = Object.keys(cookie)[0];
+    //             const name = cookie[key];
+    //             res.cookie(key, name, cookie.options);
+    //         });
+    //     }
+    //     return res;
+    // }
 
     private dynamicRoute(dynamicRoute:string) {
         return dynamicRoute? dynamicRoute: this.DYNAMIC_API_ID;

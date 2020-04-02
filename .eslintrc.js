@@ -17,33 +17,12 @@ module.exports = {
         "babel/camelcase": 1,
         "babel/no-invalid-this": 1,
         "babel/object-curly-spacing": 1,
-        "babel/quotes": 1,
+        "babel/quotes": 0,
         "babel/semi": 1,
         "babel/no-unused-expressions": 1,
-        "babel/valid-typeof": 1
+        "babel/valid-typeof": 1,
+        "@typescript-eslint/explicit-function-return-type":0,
+        "@typescript-eslint/no-use-before-define":0,
+        "@typescript-eslint/no-non-null-assertion": true"
     }
 };
-
-// {
-//   "defaultSeverity": "warning",
-//   "extends": [
-//     "tslint:recommended"
-//   ],
-//   "linterOptions": {
-//     "exclude": [
-//       "node_modules/**"
-//     ]
-//   },
-//   "rules": {
-//     "indent": [true, "spaces", 2],
-//     "interface-name": false,
-//     "no-consecutive-blank-lines": false,
-//     "object-literal-sort-keys": false,
-//     "ordered-imports": false,
-//     "quotemark": [true, "single"],
-//     "no-console": [false],
-//     "no-var-requires":false,
-//     "no-angle-bracket-type-assertion": true,
-//     "max-classes-per-file": false
-//   }
-// }
